@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Data KTP</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(to right, #F6DFEB, #CAF7E3);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .button {
+            padding: 8px 14px;
+            margin: 3px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .input {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            width: 100%;
+            background-color: white;
+            color: black;
+        }
+        .card {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+        table {
+            background-color: white;
+            color: black;
+            border-radius: 8px;
+            width: 100%;
+        }
+        th {
+            background-color: #ff79c6;
+            color: white;
+        }
+        #notification {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="notification"></div>
+    <div class="card">
+        <h1 class="text-4xl font-bold mb-4 text-pink-500">Manajemen Data KTP</h1>
+
+        <input type="hidden" id="dataId">
+        <input type="text" id="nomorKtp" placeholder="Nomor KTP" class="input">
+        <input type="text" id="namaLengkap" placeholder="Nama Lengkap" class="input">
+        <input type="text" id="alamat" placeholder="Alamat" class="input">
+        <input type="date" id="tanggalLahir" class="input">
+        <select id="jenisKelamin" class="input">
+            <option value="Laki-laki">Laki-laki</option>
+            <option value="Perempuan">Perempuan</option>
+        </select>
+        <button id="saveButton" class="button bg-pink-500 hover:bg-pink-600">Simpan Data</button>
+
+        <input type="text" id="searchInput" class="input mb-4" placeholder="Cari Data berdasarkan ID">
+
+        <h2 class="text-2xl font-bold mb-2">Data KTP</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nomor KTP</th>
+                    <th>Nama Lengkap</th>
+                    <th>Alamat</th>
+                    <th>Tanggal Lahir</th>
+                    <th>Jenis Kelamin</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function showNotification(message, color = "#4CAF50") {
+            $("#notification").text(message).css("background", color).fadeIn(400).delay(2000).fadeOut(400);
+        }
+
+        function loadData() {
+            $.get("http://localhost:8080/ktp", function(data) {
+                let rows = "";
+                data.forEach(item => {
+                    rows += `<tr>
+                        <td>${item.id}</td>
+                        <td>${item.nomorKtp}</td>
+                        <td>${item.namaLengkap}</td>
+                        <td>${item.alamat}</td>
+                        <td>${item.tanggalLahir}</td>
+                        <td>${item.jenisKelamin}</td>
+                        <td>
+                            <button onclick="editData(${item.id})" class="button bg-yellow-500 hover:bg-yellow-600">Edit</button>
+                            <button onclick="deleteData(${item.id})" class="button bg-red-500 hover:bg-red-600">Hapus</button>
+                        </td>
+                    </tr>`;
+                });
+                $("#dataTable").html(rows);
+            });
+        }
+
+        function saveData() {
+            const id = $("#dataId").val();
+            const data = {
+                nomorKtp: $("#nomorKtp").val(),
+                namaLengkap: $("#namaLengkap").val(),
+                alamat: $("#alamat").val(),
+                tanggalLahir: $("#tanggalLahir").val(),
+                jenisKelamin: $("#jenisKelamin").val()
+            };
+
+            if (id) {
+                $.ajax({
+                    type: "PUT",
+                    url: `http://localhost:8080/ktp/${id}`,
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function() {
+                        showNotification("Data berhasil diperbarui");
+                        loadData();
+                    }
+                });
+            } else {
+                $.ajax({
+                    type: "POST",
+                    url: "http://localhost:8080/ktp",
+                    contentType: "application/json",
+                    data: JSON.stringify(data),
+                    success: function() {
+                        showNotification("Data berhasil ditambahkan");
+                        loadData();
+                    }
+                });
+            }
+        }
+
+        function editData(id) {
+            $.get(`http://localhost:8080/ktp/${id}`, function(data) {
+                $("#dataId").val(data.id);
+                $("#nomorKtp").val(data.nomorKtp);
+                $("#namaLengkap").val(data.namaLengkap);
+                $("#alamat").val(data.alamat);
+                $("#tanggalLahir").val(data.tanggalLahir);
+                $("#jenisKelamin").val(data.jenisKelamin);
+            });
+        }
+
+        function deleteData(id) {
+            $.ajax({
+                type: "DELETE",
+                url: `http://localhost:8080/ktp/${id}`,
+                success: function() {
+                    showNotification("Data berhasil dihapus", "#f44336");
+                    loadData();
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            loadData();
+            $('#saveButton').click(saveData);
+        });
+    </script>
+</body>
+</html>
